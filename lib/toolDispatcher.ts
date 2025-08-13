@@ -2,9 +2,9 @@
 import { haptics } from './haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logEvent } from './store';
-import { scheduleReminder as scheduleReminderUtil } from './notifications';
+import { scheduleReminder } from './notifications';
 
-type ToolCall =
+export type ToolCall =
   | { tool: "start_reset"; args: { name: string; duration_s: number } }
   | { tool: "nudge_block"; args: { domains: string[] } }
   | { tool: "schedule_reminder"; args: { minutes_from_now: number; title: string } }
@@ -26,7 +26,7 @@ export async function runTools(toolCalls: ToolCall[] = []) {
       } else if (tc.tool === "nudge_block") {
         await nudgeBlock(tc.args.domains);
       } else if (tc.tool === "schedule_reminder") {
-        await scheduleReminder(tc.args.minutes_from_now, tc.args.title);
+        await scheduleReminderLocal(tc.args.minutes_from_now, tc.args.title);
       } else if (tc.tool === "log_event") {
         await logEvent({ type: tc.args.kind, meta: tc.args.payload ?? {} });
       } else if (tc.tool === "stash_reflection") {
@@ -54,9 +54,9 @@ async function nudgeBlock(domains: string[]) {
   await logEvent({ type: 'block_nudge', meta: { domains } });
 }
 
-async function scheduleReminder(minutes: number, title: string) {
+async function scheduleReminderLocal(minutes: number, title: string) {
   haptics.light();
-  const success = await scheduleReminderUtil(minutes, title);
+  const success = await scheduleReminder(title, "Time for your check-in", { seconds: minutes * 60 });
   if (success) {
     await logEvent({ type: 'reminder_scheduled', meta: { minutes, title } });
   } else {
