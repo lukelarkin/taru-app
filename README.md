@@ -146,14 +146,14 @@ lib/
 - **Performance**: FlatList optimization, memoization
 
 ### **Testing**
-```bash
+   ```bash
 npm run test          # Run tests
 npm run lint          # Check code style
 npm run type-check    # TypeScript validation
-```
+   ```
 
 ### **Building**
-```bash
+   ```bash
 npm run build:ios     # iOS build
 npm run build:android # Android build
 ```

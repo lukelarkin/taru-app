@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, Dimensions, Animated, Platform, AccessibilityInfo } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Dimensions, Image, Animated, Platform, AccessibilityInfo } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import TaruLogo from '../components/TaruLogo';
 
 const INTRO_LEN_MS = 8000;        // your Veo 3 clip (~8s)
 const SKIP_AVAILABLE_MS = 3000;   // Apple-friendly skip after 3s
@@ -76,7 +75,12 @@ export default function IntroVideo() {
           },
         ]}
       >
-        <TaruLogo size="large" color="white" />
+        <Image
+          source={require('../assets/taru_logo_white.png')}
+          style={styles.logo}
+          accessible
+          accessibilityLabel="TARU logo"
+        />
         <Text style={styles.tagline} accessibilityRole="text">
           Digital Drugs. Real Recovery.
         </Text>
@@ -115,7 +119,7 @@ const styles = StyleSheet.create({
     right: 24,
     alignItems: 'flex-start',
   },
-  logo: { marginBottom: 8 },
+  logo: { width: 160, height: 48, resizeMode: 'contain', marginBottom: 8 },
   tagline: { color: 'rgba(255,255,255,0.92)', fontSize: 16, letterSpacing: 0.4 },
   skipButton: {
     position: 'absolute',
