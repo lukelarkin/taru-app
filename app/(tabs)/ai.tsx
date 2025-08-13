@@ -1,346 +1,187 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  ScrollView, 
-  StyleSheet, 
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform 
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing } from '../../ui/designSystem';
-import { Text } from '../../ui/Text';
-import { Button } from '../../ui/Button';
-import { Card } from '../../ui/Card';
-import { Icon } from '../../ui/Icon';
-import { haptics } from '../../lib/haptics';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { View, Text, TextInput, FlatList, Pressable, Alert, StyleSheet, SafeAreaView } from "react-native";
+import { athenaTurn } from "../../lib/aiClient";
+import { runTools } from "../../lib/toolDispatcher";
+import Bubble from "../../components/ChatBubble";
+import QuickReplies from "../../components/QuickReplies";
+import prompts from "../../content/quickPrompts.json";
+import * as Haptics from "expo-haptics";
+import { useLocalSearchParams } from "expo-router";
+import { logEvent } from "../../lib/store";
 
-// AI Persona types for different emotional states
-const aiPersonas = [
-  {
-    id: 'resentment',
-    title: 'Resentment',
-    description: 'Release built-up frustration',
-    icon: 'flash',
-    color: colors.amber,
-  },
-  {
-    id: 'shame',
-    title: 'Shame',
-    description: 'Compassionate self-acceptance',
-    icon: 'heart',
-    color: colors.salmon,
-  },
-  {
-    id: 'craving',
-    title: 'Craving',
-    description: 'Navigate digital urges',
-    icon: 'phone-portrait',
-    color: colors.aqua,
-  },
-  {
-    id: 'anger',
-    title: 'Anger',
-    description: 'Find inner calm',
-    icon: 'flame',
-    color: colors.salmon,
-  },
-  {
-    id: 'grief',
-    title: 'Grief',
-    description: 'Gentle healing support',
-    icon: 'cloud',
-    color: colors.aqua,
-  },
-  {
-    id: 'denial',
-    title: 'Denial',
-    description: 'Honest self-reflection',
-    icon: 'eye',
-    color: colors.amber,
-  },
-  {
-    id: 'self-deception',
-    title: 'Self-Deception',
-    description: 'Clarity and truth',
-    icon: 'glasses',
-    color: colors.jade,
-  },
-  {
-    id: 'lust',
-    title: 'Lust',
-    description: 'Redirect energy mindfully',
-    icon: 'heart',
-    color: colors.salmon,
-  },
-];
+type Scenario = "craving_manager"|"ifs_micro"|"shame_repair"|"relapse_triage";
 
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-}
+const MAX_MSG = 40;
 
-export default function AIScreen() {
-  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Hello, I\'m here to support your recovery journey. How are you feeling right now?',
-      isUser: false,
-      timestamp: new Date(),
-    },
-  ]);
-  const [inputText, setInputText] = useState('');
+export default function AI() {
+  const params = useLocalSearchParams<{ scenarioOverride?: string }>();
+  const [scenario, setScenario] = useState<Scenario | undefined>(undefined);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [messages, setMessages] = useState<{role:"user"|"assistant"; content:string}[]>([]);
+  const listRef = useRef<FlatList>(null);
 
-  const handlePersonaSelect = (personaId: string) => {
-    haptics.light();
-    setSelectedPersona(personaId);
-    
-    // Add persona-specific message
-    const persona = aiPersonas.find(p => p.id === personaId);
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text: `I understand you're feeling ${persona?.title.toLowerCase()}. Let's work through this together. What's on your mind?`,
-      isUser: false,
-      timestamp: new Date(),
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
-  };
+  useEffect(()=>{ if (params?.scenarioOverride) setScenario(params.scenarioOverride as Scenario); }, [params?.scenarioOverride]);
 
-  const handleSendMessage = () => {
-    if (!inputText.trim()) return;
-    
-    haptics.light();
-    
-    // Add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputText,
-      isUser: true,
-      timestamp: new Date(),
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
-    setInputText('');
-    
-    // TODO: Replace with actual AI response
-    // For now, simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: 'I hear you. That sounds challenging. Can you tell me more about what\'s driving this feeling?',
-        isUser: false,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, aiResponse]);
-    }, 1000);
-  };
+  const quickItems = useMemo(()=>{
+    const base = (prompts as any)["common"] || [];
+    const extra = scenario ? (prompts as any)[scenario] || [] : [];
+    return [...base, ...extra].slice(0,8);
+  }, [scenario]);
+
+  function push(m: {role:"user"|"assistant"; content:string}) {
+    setMessages(prev => {
+      const next = [...prev, m];
+      return next.length > MAX_MSG ? next.slice(next.length - MAX_MSG) : next;
+    });
+    requestAnimationFrame(()=>listRef.current?.scrollToEnd({ animated:true }));
+  }
+
+  async function send(text?: string) {
+    const content = (text ?? input).trim();
+    if (!content || busy) return;
+    setInput("");
+    push({ role:"user", content });
+    setBusy(true);
+
+    try {
+      const turn = await athenaTurn({ messages: [...messages, { role:"user", content }], prevScenario: scenario });
+      setScenario(turn.scenario);
+      const coach = String(turn?.ui?.coach_text || "I'm here. Let's take one step together.");
+
+      // If model suggested a reset, show **CTA** inside the bubble, not auto-run
+      const hasReset = Array.isArray(turn.tool_calls) && turn.tool_calls.some((t:any)=>t.tool==="start_reset");
+      push({
+        role:"assistant",
+        content: coach,
+        ...(hasReset && {
+          ctaLabel: turn?.intervention?.suggested_reset
+            ? `Do ${turn.intervention.suggested_reset.name.replace("_"," ")} (${turn.intervention.suggested_reset.duration_s}s)`
+            : "Start a short reset",
+          onCtaPress: () => confirmReset(turn)
+        }) as any
+      });
+
+      // Add model-proposed quick replies if present
+      if (Array.isArray(turn?.ui?.quick_replies) && turn.ui.quick_replies.length) {
+        turn.ui.quick_replies.slice(0,4).forEach((qr:string)=>{/* we already show our static bar; optional render inline chips */});
+      }
+
+      logEvent({ type:"ai_turn", meta:{ scenario: turn.scenario, intent: turn.intent } });
+    } catch (e: any) {
+      console.error('AI error:', e);
+      push({ 
+        role:"assistant", 
+        content: "I hit a snag. Here's a quick reset instead: Double inhale, long exhale (8 cycles)." 
+      });
+      logEvent({ type:"ai_error", meta:{ error: e.message } });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function confirmReset(turn: any) {
+    Alert.alert(
+      "Start Reset?",
+      "This will begin a short breathing exercise. Ready?",
+      [
+        { text: "Keep talking", style: "cancel" },
+        { text: "Breathe now", onPress: () => runTools(turn.tool_calls) }
+      ]
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+    <SafeAreaView style={S.safe}>
+      <View style={S.container}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text variant="displayLarge" style={styles.title}>
-            AI Recovery
-          </Text>
-          <Text variant="bodyLarge" color="textSecondary" style={styles.subtitle}>
-            Compassionate support for your journey
-          </Text>
+        <View style={S.header}>
+          <Text style={S.title}>Athena</Text>
+          <Text style={S.subtitle}>Your recovery coach</Text>
+          {scenario && (
+            <View style={S.badge}>
+              <Text style={S.badgeText}>{scenario.replace('_', ' ')}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Persona Selection */}
-        {!selectedPersona && (
-          <View style={styles.personaSection}>
-            <Text variant="displaySmall" style={styles.sectionTitle}>
-              How are you feeling?
-            </Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.personaScroll}
-            >
-              {aiPersonas.map((persona) => (
-                <TouchableOpacity
-                  key={persona.id}
-                  style={styles.personaCard}
-                  onPress={() => handlePersonaSelect(persona.id)}
-                  activeOpacity={0.8}
-                >
-                  <View 
-                    style={[
-                      styles.personaIcon, 
-                      { backgroundColor: persona.color }
-                    ]}
-                  >
-                    <Icon name={persona.icon as any} size="medium" color="white" />
-                  </View>
-                  <Text variant="bodyMedium" style={styles.personaTitle}>
-                    {persona.title}
-                  </Text>
-                  <Text variant="caption" color="textSecondary" style={styles.personaDescription}>
-                    {persona.description}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Chat Messages */}
-        <ScrollView 
-          style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesContent}
+        {/* Messages */}
+        <FlatList
+          ref={listRef}
+          data={messages}
+          keyExtractor={(_, i) => String(i)}
+          renderItem={({ item }) => <Bubble msg={item} />}
+          contentContainerStyle={S.messages}
           showsVerticalScrollIndicator={false}
-        >
-          {messages.map((message) => (
-            <View
-              key={message.id}
-              style={[
-                styles.messageContainer,
-                message.isUser ? styles.userMessage : styles.aiMessage
-              ]}
-            >
-              <Card 
-                variant={message.isUser ? 'surface' : 'glass'} 
-                style={styles.messageCard}
-              >
-                <Text variant="bodyMedium" color={message.isUser ? 'textPrimary' : 'white'}>
-                  {message.text}
-                </Text>
-              </Card>
-            </View>
-          ))}
-        </ScrollView>
+        />
+
+        {/* Quick Replies */}
+        <QuickReplies items={quickItems} onPick={send} />
 
         {/* Input */}
-        <View style={styles.inputContainer}>
+        <View style={S.inputRow}>
           <TextInput
-            style={styles.textInput}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Type your message..."
-            placeholderTextColor={colors.textTertiary}
+            style={S.input}
+            value={input}
+            onChangeText={setInput}
+            placeholder="Tell Athena what's happening..."
+            placeholderTextColor="rgba(255,255,255,0.5)"
             multiline
             maxLength={500}
+            editable={!busy}
+            accessibilityLabel="Message Athena"
+            accessibilityHint="Describe what is happening and send"
           />
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              { opacity: inputText.trim() ? 1 : 0.5 }
-            ]}
-            onPress={handleSendMessage}
-            disabled={!inputText.trim()}
+          <Pressable
+            style={[S.sendBtn, { opacity: (input.trim() && !busy) ? 1 : 0.5 }]}
+            onPress={() => send()}
+            disabled={!input.trim() || busy}
+            accessibilityLabel="Send message to Athena"
+            accessibilityRole="button"
           >
-            <Icon name="send" size="small" color="white" />
-          </TouchableOpacity>
+            <Text style={S.sendText}>{busy ? "…" : "Send"}</Text>
+          </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+const S = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#0B0B0A" },
+  container: { flex: 1, padding: 16 },
+  header: { marginBottom: 16 },
+  title: { color: "white", fontSize: 24, fontWeight: "700", marginBottom: 4 },
+  subtitle: { color: "rgba(255,255,255,0.65)", fontSize: 16 },
+  badge: { 
+    backgroundColor: "#121210", 
+    paddingHorizontal: 8, 
+    paddingVertical: 4, 
+    borderRadius: 8, 
+    alignSelf: "flex-start", 
+    marginTop: 8 
+  },
+  badgeText: { color: "rgba(255,255,255,0.8)", fontSize: 12 },
+  messages: { paddingBottom: 16 },
+  inputRow: { flexDirection: "row", gap: 8, alignItems: "flex-end" },
+  input: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: "#121210",
+    borderRadius: 16,
+    padding: 12,
+    color: "white",
+    borderWidth: 1,
+    borderColor: "#23231e",
+    minHeight: 44,
+    maxHeight: 120
   },
-  keyboardAvoidingView: {
-    flex: 1,
+  sendBtn: {
+    backgroundColor: "#22C55E",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 44,
+    justifyContent: "center"
   },
-  header: {
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  title: {
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    opacity: 0.8,
-  },
-  personaSection: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  personaScroll: {
-    paddingHorizontal: spacing.lg,
-  },
-  personaCard: {
-    width: 120,
-    marginRight: spacing.md,
-    alignItems: 'center',
-  },
-  personaIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  personaTitle: {
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-    fontWeight: '600',
-  },
-  personaDescription: {
-    textAlign: 'center',
-    fontSize: 11,
-  },
-  messagesContainer: {
-    flex: 1,
-  },
-  messagesContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  messageContainer: {
-    marginBottom: spacing.md,
-  },
-  userMessage: {
-    alignItems: 'flex-end',
-  },
-  aiMessage: {
-    alignItems: 'flex-start',
-  },
-  messageCard: {
-    maxWidth: '80%',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: spacing.lg,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.glass,
-  },
-  textInput: {
-    flex: 1,
-    backgroundColor: colors.sand,
-    borderRadius: 20,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    marginRight: spacing.sm,
-    maxHeight: 100,
-    color: colors.textPrimary,
-    fontSize: 16,
-  },
-  sendButton: {
-    backgroundColor: colors.jade,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  sendText: { color: "white", fontWeight: "600" }
 }); 

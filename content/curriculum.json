@@ -1,0 +1,65 @@
+{
+  "w1_d1": {
+    "title": "Stabilize: Start Where You Are",
+    "steps": [
+      { "type": "checkin", "prompt": "Name your current state in 3 words." },
+      { "type": "work", "mode": "ifs_micro", "script": "Notice a Part that wants relief. Thank it. Ask what it's protecting you from today." },
+      { "type": "commit", "prompt": "One tiny act of care you'll do in the next hour?" }
+    ],
+    "deep_session": false
+  },
+  "w1_d2": {
+    "title": "Breath & Body Map",
+    "steps": [
+      { "type": "checkin", "prompt": "Where do you feel it in the body? 1–2 spots." },
+      { "type": "work", "mode": "reset", "reset": {"name": "physiologic_sigh", "duration_s": 75} },
+      { "type": "commit", "prompt": "What will help you feel 1% safer this evening?" }
+    ],
+    "deep_session": false
+  },
+  "w1_d3": {
+    "title": "Grounding & Presence",
+    "steps": [
+      { "type": "checkin", "prompt": "What's one thing you're grateful for right now?" },
+      { "type": "work", "mode": "reset", "reset": {"name": "alternate_nostril", "duration_s": 120} },
+      { "type": "commit", "prompt": "One boundary you'll hold for yourself today?" }
+    ],
+    "deep_session": false
+  },
+  "w1_d4": {
+    "title": "Shame Check-In",
+    "steps": [
+      { "type": "checkin", "prompt": "What's one thing you're carrying that's not yours to carry?" },
+      { "type": "work", "mode": "shame_repair", "script": "Notice shame without judgment. What's the truth underneath?" },
+      { "type": "commit", "prompt": "One act of self-compassion you'll practice today?" }
+    ],
+    "deep_session": false
+  },
+  "w1_d5": {
+    "title": "Energy & Movement",
+    "steps": [
+      { "type": "checkin", "prompt": "What energy do you need to release today?" },
+      { "type": "work", "mode": "reset", "reset": {"name": "shake_off", "duration_s": 45} },
+      { "type": "commit", "prompt": "One way you'll honor your body's wisdom today?" }
+    ],
+    "deep_session": false
+  },
+  "w1_d6": {
+    "title": "Connection & Support",
+    "steps": [
+      { "type": "checkin", "prompt": "Who or what supports you when you're struggling?" },
+      { "type": "work", "mode": "ifs_micro", "script": "Find a Part that feels alone. Offer it connection and care." },
+      { "type": "commit", "prompt": "One way you'll reach out for support this week?" }
+    ],
+    "deep_session": false
+  },
+  "w1_deep": {
+    "title": "Deep Session: Stabilize & Safety",
+    "steps": [
+      { "type": "guide", "mode": "ifs_micro", "script": "Unblend from a Protector. Ask its positive intent. Offer gratitude. Ask for a tiny negotiation for tonight." },
+      { "type": "work", "mode": "journal", "prompt": "What did you learn about this Protector's job?" },
+      { "type": "commit", "prompt": "Boundary you will hold for 24h?" }
+    ],
+    "deep_session": true
+  }
+}

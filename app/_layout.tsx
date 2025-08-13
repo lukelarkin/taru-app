@@ -2,14 +2,28 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Notifications from "expo-notifications";
 import { colors } from '../ui/designSystem';
 import { Icon } from '../ui/Icon';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+
+// Configure notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true, 
+    shouldPlaySound: false, 
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true
+  })
+});
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" backgroundColor={colors.ink} />
-      <Tabs
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <StatusBar style="light" backgroundColor={colors.ink} />
+        <Tabs
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
@@ -30,6 +44,15 @@ export default function RootLayout() {
         }}
       >
         <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="home" size={size} color="textPrimary" />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="(tabs)/resets"
           options={{
             title: 'Resets',
@@ -41,9 +64,18 @@ export default function RootLayout() {
         <Tabs.Screen
           name="(tabs)/ai"
           options={{
-            title: 'AI Recovery',
+            title: 'Athena',
             tabBarIcon: ({ color, size }) => (
               <Icon name="chatbubble" size={size} color="textPrimary" />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="(tabs)/program"
+          options={{
+            title: 'Program',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="book" size={size} color="textPrimary" />
             ),
           }}
         />
@@ -56,7 +88,17 @@ export default function RootLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="(tabs)/diagnostics"
+          options={{
+            title: 'Debug',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="bug" size={size} color="textPrimary" />
+            ),
+          }}
+        />
       </Tabs>
     </SafeAreaProvider>
+    </ErrorBoundary>
   );
 } 

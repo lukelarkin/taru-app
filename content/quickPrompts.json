@@ -1,0 +1,30 @@
+{
+  "common": [
+    "I only have 60 seconds—help me shift.",
+    "Name the trigger with me.",
+    "What's one tiny action right now?"
+  ],
+  "craving_manager": [
+    "Ride the urge with me.",
+    "Give me a friction step (30s).",
+    "Offer one 60–90s reset.",
+    "Help me leave this room.",
+    "Name the cost 10 minutes from now."
+  ],
+  "ifs_micro": [
+    "Help me unblend from a Part.",
+    "What is my Protector trying to do?",
+    "Let's thank the Firefighter and learn its job.",
+    "Guide 3 gentle questions."
+  ],
+  "shame_repair": [
+    "I'm beating myself up—help me soften.",
+    "Give me a compassionate truth line.",
+    "One act of care I can do now."
+  ],
+  "relapse_triage": [
+    "Normalize and help me plan.",
+    "Set a 4-hour plan with me.",
+    "Nudge boundaries for 24h."
+  ]
+}

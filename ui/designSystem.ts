@@ -2,13 +2,18 @@
 // Award-level craft with ruthless simplicity
 
 export const colors = {
-  // Brand Colors
-  ink: '#0B0B0A',        // Primary background
+  // Brand Colors (Therapeutic Palette)
+  ink: '#0B0B0A',        // Primary background (onyx)
+  surface: '#121210',    // Surface backgrounds (ink)
+  athenaBubble: '#0F172A', // Athena chat bubble (deep slate)
+  userBubble: '#1E293B', // User chat bubble (slate)
+  jade: '#22C55E',       // Primary accent (jade)
+  
+  // Legacy Colors (keeping for compatibility)
   sand: '#EAE6DF',       // Card backgrounds
   aqua: '#79E2D0',       // Primary action
   salmon: '#FF8A7A',     // Secondary action
   amber: '#FFC560',      // Warning/attention
-  jade: '#29CC8B',       // Success/primary button
   
   // Semantic Colors
   white: '#FFFFFF',
@@ -18,11 +23,10 @@ export const colors = {
   glass: 'rgba(255, 255, 255, 0.06)',
   
   // Accessibility
-  textPrimary: '#0B0B0A',
-  textSecondary: '#666666',
-  textTertiary: '#999999',
+  textPrimary: '#FFFFFF',
+  textSecondary: 'rgba(255,255,255,0.65)',
+  textTertiary: 'rgba(255,255,255,0.5)',
   background: '#0B0B0A',
-  surface: '#EAE6DF',
 } as const;
 
 export const typography = {

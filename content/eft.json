@@ -1,0 +1,30 @@
+{
+  "intro": [
+    "We'll tap gently on 8 acupoints while speaking short truth lines.",
+    "If a point feels tender, soften your touch.",
+    "If you get dizzy, pause and breathe—this is your pace."
+  ],
+  "setup_lines": [
+    "Even though I feel {feeling}, I choose care for my body now.",
+    "Even though this urge is loud, I can be kind to myself right here.",
+    "Even with this wave, a steadier breath is possible."
+  ],
+  "truth_lines": [
+    "This is a wave, not forever.",
+    "My body is asking for relief.",
+    "I can choose one small act of care."
+  ],
+  "points": [
+    { "id": "brow",        "label": "Eyebrow" },
+    { "id": "side_eye",    "label": "Side of Eye" },
+    { "id": "under_eye",   "label": "Under Eye" },
+    { "id": "under_nose",  "label": "Under Nose" },
+    { "id": "chin",        "label": "Chin" },
+    { "id": "collarbone",  "label": "Collarbone" },
+    { "id": "under_arm",   "label": "Under Arm" },
+    { "id": "top_head",    "label": "Top of Head" }
+  ],
+  "rounds": 2,
+  "per_point_ms": 3500,
+  "setup_ms": 15000
+}
