@@ -1,29 +1,41 @@
 {
   "expo": {
     "name": "TARU",
-    "slug": "TARU",
+    "slug": "taru",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#171712"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.taru.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#171712"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.taru.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "scheme": "taru",
+    "plugins": [
+      "expo-router",
+      "expo-sqlite"
+    ],
+    "extra": {
+      "EXPO_PUBLIC_INGEST_ENDPOINT": "https://yourdomain.com/api/ingest",
+      "EXPO_PUBLIC_INGEST_TOKEN": "supersecret"
     }
   }
 }
