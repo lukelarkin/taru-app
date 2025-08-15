@@ -9,6 +9,9 @@ const config: ExpoConfig = {
     bundleIdentifier: 'com.taru.app',
     buildNumber: '1.0.0',
     supportsTablet: false,
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false
+    }
   },
   extra: {
     eas: {
