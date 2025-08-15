@@ -6,25 +6,29 @@ import {
   TouchableOpacity,
   Text,
   ScrollView,
+  TextInput,
+  FlatList,
 } from 'react-native';
-import { GiftedChat, IMessage } from 'react-native-gifted-chat';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius } from '../../theme/tokens';
-import { Message } from '../../lib/supa/types';
+
+interface ChatMessage {
+  id: string;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
+}
 
 export default function AthenaScreen() {
-  const [messages, setMessages] = useState<IMessage[]>([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      _id: '1',
+      id: '1',
       text: 'Hello! I\'m Athena, your AI companion. How can I help you today?',
-      createdAt: new Date(),
-      user: {
-        _id: 'athena',
-        name: 'Athena',
-        avatar: '🤖',
-      },
+      isUser: false,
+      timestamp: new Date(),
     },
   ]);
+  const [inputText, setInputText] = useState('');
 
   const promptChips = [
     {
@@ -41,46 +45,53 @@ export default function AthenaScreen() {
     },
   ];
 
-  const onSend = useCallback((newMessages: IMessage[] = []) => {
-    setMessages(previousMessages =>
-      GiftedChat.append(previousMessages, newMessages)
-    );
+  const sendMessage = useCallback((text: string) => {
+    if (!text.trim()) return;
+
+    const userMessage: ChatMessage = {
+      id: Math.random().toString(),
+      text: text.trim(),
+      isUser: true,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputText('');
 
     // Simulate AI response
     setTimeout(() => {
-      const aiResponse: IMessage = {
-        _id: Math.random().toString(),
+      const aiResponse: ChatMessage = {
+        id: Math.random().toString(),
         text: 'I understand what you\'re going through. Let\'s work through this together. Can you tell me more about how you\'re feeling right now?',
-        createdAt: new Date(),
-        user: {
-          _id: 'athena',
-          name: 'Athena',
-          avatar: '🤖',
-        },
+        isUser: false,
+        timestamp: new Date(),
       };
-      setMessages(previousMessages =>
-        GiftedChat.append(previousMessages, [aiResponse])
-      );
+      setMessages(prev => [...prev, aiResponse]);
     }, 1000);
   }, []);
 
   const onPressChip = (chip: typeof promptChips[0]) => {
-    const userMessage: IMessage = {
-      _id: Math.random().toString(),
-      text: chip.message,
-      createdAt: new Date(),
-      user: {
-        _id: 'user',
-        name: 'You',
-      },
-    };
-    onSend([userMessage]);
+    sendMessage(chip.message);
   };
 
   const onPressVoiceNote = () => {
     // TODO: Implement voice note recording
     console.log('Voice note pressed');
   };
+
+  const renderMessage = ({ item }: { item: ChatMessage }) => (
+    <View style={[
+      styles.messageContainer,
+      item.isUser ? styles.userMessage : styles.aiMessage
+    ]}>
+      <View style={[
+        styles.bubble,
+        item.isUser ? styles.bubbleRight : styles.bubbleLeft
+      ]}>
+        <Text style={styles.bubbleText}>{item.text}</Text>
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -99,29 +110,32 @@ export default function AthenaScreen() {
         </ScrollView>
       </View>
 
-      {/* Chat */}
-      <GiftedChat
-        messages={messages}
-        onSend={onSend}
-        user={{
-          _id: 'user',
-        }}
-        placeholder="Type a message..."
-        textInputProps={{
-          style: styles.textInput,
-        }}
-        renderAvatar={() => null}
-        renderBubble={(props) => (
-          <View
-            style={[
-              styles.bubble,
-              props.position === 'left' ? styles.bubbleLeft : styles.bubbleRight,
-            ]}
-          >
-            <Text style={styles.bubbleText}>{props.currentMessage?.text}</Text>
-          </View>
-        )}
+      {/* Chat Messages */}
+      <FlatList
+        data={messages}
+        renderItem={renderMessage}
+        keyExtractor={(item) => item.id}
+        style={styles.messagesList}
+        contentContainerStyle={styles.messagesContainer}
       />
+
+      {/* Input */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.textInput}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder="Type a message..."
+          placeholderTextColor={colors.sub}
+          multiline
+        />
+        <TouchableOpacity
+          style={styles.sendButton}
+          onPress={() => sendMessage(inputText)}
+        >
+          <Ionicons name="send" size={20} color={colors.text} />
+        </TouchableOpacity>
+      </View>
 
       {/* Voice Note Button */}
       <TouchableOpacity style={styles.voiceButton} onPress={onPressVoiceNote}>
@@ -153,30 +167,60 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  textInput: {
-    backgroundColor: colors.card,
-    color: colors.text,
-    borderRadius: radius.md,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  messagesList: {
+    flex: 1,
+  },
+  messagesContainer: {
+    padding: 16,
+  },
+  messageContainer: {
+    marginVertical: 4,
+  },
+  userMessage: {
+    alignItems: 'flex-end',
+  },
+  aiMessage: {
+    alignItems: 'flex-start',
   },
   bubble: {
     maxWidth: '80%',
     padding: 12,
     borderRadius: radius.md,
-    marginVertical: 4,
   },
   bubbleLeft: {
     backgroundColor: colors.card,
-    alignSelf: 'flex-start',
   },
   bubbleRight: {
     backgroundColor: colors.accent,
-    alignSelf: 'flex-end',
   },
   bubbleText: {
     color: colors.text,
     fontSize: 16,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.card,
+    alignItems: 'flex-end',
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: colors.card,
+    color: colors.text,
+    borderRadius: radius.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginRight: 8,
+    maxHeight: 100,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   voiceButton: {
     position: 'absolute',
