@@ -4,5 +4,17 @@
   <dict>
     <key>aps-environment</key>
     <string>development</string>
+    <key>com.apple.developer.device-activity</key>
+    <true/>
+    <key>com.apple.developer.family-controls</key>
+    <true/>
+    <key>com.apple.developer.networking.networkextension</key>
+    <array>
+      <string>app-proxy-provider</string>
+    </array>
+    <key>com.apple.security.application-groups</key>
+    <array>
+      <string>group.com.taru.app</string>
+    </array>
   </dict>
 </plist>

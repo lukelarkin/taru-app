@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, TextInput, FlatList, Pressable, Alert, StyleSheet, SafeAreaView } from "react-native";
-import { athenaTurn } from "../../lib/aiClient";
-import { runTools } from "../../lib/toolDispatcher";
-import type { ToolCall } from "../../lib/toolDispatcher";
+import { getAthenaResponse } from "../../lib/ai/athenaApi";
+import { UserCard, Moment, EmotionalState } from "../../lib/ai/types";
 import Bubble from "../../components/ChatBubble";
 import QuickReplies from "../../components/QuickReplies";
 import prompts from "../../content/quickPrompts.json";
@@ -45,51 +44,59 @@ export default function AI() {
     setBusy(true);
 
     try {
-      const turn = await athenaTurn({ messages: [...messages, { role:"user", content }], prevScenario: scenario });
-      setScenario(turn.scenario);
-      const coach = String(turn?.ui?.coach_text || "I'm here. Let's take one step together.");
+      // Create user context
+      const userCard: UserCard = {
+        userId: "user_123",
+        firstName: "User",
+        archetype: "Coach",
+        daysStreak: 5,
+        recentTriggers: ["bored at night", "stress"],
+        supportContact: null
+      };
 
-      // If model suggested a reset, show **CTA** inside the bubble, not auto-run
-      const hasReset = Array.isArray(turn.tool_calls) && turn.tool_calls.some((t: Record<string, unknown>)=>t.tool==="start_reset");
+      // Map scenario to emotional state
+      const getEmotionalState = (scenario?: Scenario): EmotionalState => {
+        switch (scenario) {
+          case "craving_manager": return "craving";
+          case "shame_repair": return "shame";
+          case "relapse_triage": return "shame";
+          case "ifs_micro": return "craving";
+          default: return "craving";
+        }
+      };
+
+      const moment: Moment = {
+        state: getEmotionalState(scenario),
+        timebox: 60,
+        contextNote: "Using TARU app",
+        attemptedBypass: false
+      };
+
+      const response = await getAthenaResponse(userCard, moment, content);
+      
+      // Update scenario based on response
+      setScenario(scenario);
+
+      // Push the response
       push({
-        role:"assistant",
-        content: coach,
-        ...(hasReset && {
-          ctaLabel: turn?.intervention?.suggested_reset
-            ? `Do ${turn.intervention.suggested_reset.name.replace("_"," ")} (${turn.intervention.suggested_reset.duration_s}s)`
-            : "Start a short reset",
-          onCtaPress: () => confirmReset(turn)
-        }) as Record<string, unknown>
+        role: "assistant",
+        content: response.message
       });
 
-      // Add model-proposed quick replies if present
-      if (Array.isArray(turn?.ui?.quick_replies) && turn.ui.quick_replies.length) {
-        turn.ui.quick_replies.slice(0,4).forEach((_qr: string)=>{/* we already show our static bar; optional render inline chips */});
-      }
-
-      logEvent({ type:"ai_turn", meta:{ scenario: turn.scenario, intent: turn.intent } });
+      logEvent({ type: "ai_turn", meta: { scenario, intent: "support" } });
     } catch (e: unknown) {
       console.error('AI error:', e);
       push({ 
-        role:"assistant", 
+        role: "assistant", 
         content: "I hit a snag. Here's a quick reset instead: Double inhale, long exhale (8 cycles)." 
       });
-      logEvent({ type:"ai_error", meta:{ error: e instanceof Error ? e.message : String(e) } });
+      logEvent({ type: "ai_error", meta: { error: e instanceof Error ? e.message : String(e) } });
     } finally {
       setBusy(false);
     }
   }
 
-  function confirmReset(turn: Record<string, unknown>) {
-    Alert.alert(
-      "Start Reset?",
-      "This will begin a short breathing exercise. Ready?",
-      [
-        { text: "Keep talking", style: "cancel" },
-        { text: "Breathe now", onPress: () => runTools(turn.tool_calls as ToolCall[]) }
-      ]
-    );
-  }
+
 
   return (
     <SafeAreaView style={S.safe}>

@@ -11,6 +11,7 @@ export default function IntroVideo() {
   const videoRef = useRef<Video>(null);
   const [showSkip, setShowSkip] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [videoError, setVideoError] = useState(false);
 
   // Watermark/logo anim
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -39,19 +40,24 @@ export default function IntroVideo() {
       Animated.timing(blackout, { toValue: 1, duration: reducedMotion ? 0 : 300, useNativeDriver: true }).start(() => resolve());
     });
     // Navigate to onboarding
-    router.replace('/(tabs)');
+    router.replace('/onboarding');
   };
 
   return (
     <View style={styles.container} accessible accessibilityLabel="TARU intro video">
-      <Video
+      {!videoError ? (
+        <Video
         ref={videoRef}
         source={require('../assets/Cinematic_Logo_Animation_Generation.mp4')}
         style={styles.video}
-        resizeMode={ResizeMode.COVER}
+        resizeMode={ResizeMode.CONTAIN}
         shouldPlay
         isLooping={false}
         isMuted={false}
+        onError={(error) => {
+          console.warn('Video error:', error);
+          setVideoError(true);
+        }}
         onPlaybackStatusUpdate={(status) => {
           if ('positionMillis' in status) {
             if (!showSkip && status.positionMillis > SKIP_AVAILABLE_MS) setShowSkip(true);
@@ -63,6 +69,17 @@ export default function IntroVideo() {
           if ('didJustFinish' in status && status.didJustFinish) handleEnd();
         }}
       />
+      ) : (
+        <View style={styles.fallbackContainer}>
+          <Image
+            source={require('../assets/brand/taru-logo.png')}
+            style={styles.fallbackLogo}
+            accessible
+            accessibilityLabel="TARU logo"
+          />
+          <Text style={styles.fallbackText}>Digital Drugs. Real Recovery.</Text>
+        </View>
+      )}
 
       {/* Watermark / brand lockup */}
       <Animated.View
@@ -76,7 +93,7 @@ export default function IntroVideo() {
         ]}
       >
         <Image
-          source={require('../assets/taru_logo_white.png')}
+          source={require('../assets/brand/taru-logo.png')}
           style={styles.logo}
           accessible
           accessibilityLabel="TARU logo"
@@ -111,7 +128,12 @@ const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'black' },
-  video: { width, height, position: 'absolute' },
+  video: { 
+    width, 
+    height, 
+    position: 'absolute',
+    backgroundColor: 'black',
+  },
   brandWrap: {
     position: 'absolute',
     left: 24,
@@ -134,4 +156,23 @@ const styles = StyleSheet.create({
   },
   skipText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
   blackout: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'black' },
+  fallbackContainer: { 
+    flex: 1, 
+    backgroundColor: 'black', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    padding: 24,
+  },
+  fallbackLogo: { 
+    width: 200, 
+    height: 60, 
+    resizeMode: 'contain', 
+    marginBottom: 16 
+  },
+  fallbackText: { 
+    color: 'rgba(255,255,255,0.92)', 
+    fontSize: 18, 
+    letterSpacing: 0.4,
+    textAlign: 'center',
+  },
 });
