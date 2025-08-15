@@ -7,7 +7,7 @@ const config: ExpoConfig = {
   icon: './assets/brand/taru-logo.png',
   ios: {
     bundleIdentifier: 'com.taru.app',
-    buildNumber: '1.0.0',
+    buildNumber: '1.0.1',
     supportsTablet: false,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false
