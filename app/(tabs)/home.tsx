@@ -14,13 +14,15 @@ import { useDaily } from '../../lib/store/useDaily';
 import { Section } from '../../components/ui/Section';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { useRouter } from "expo-router";
 
 export default function HomeScreen() {
   const { streak, dailyFocus, todayProgress, isLoading, refresh } = useDaily();
   const scrollRef = useRef<ScrollView>(null);
+  const router = useRouter();
 
   const quickActions = [
-    { title: 'Craving', icon: 'flame-outline', onPress: () => {} },
+    { title: 'STOP Technique', icon: 'pause-circle-outline', onPress: () => router.push("/lesson/stop") },
     { title: "Today's Exercise", icon: 'fitness-outline', onPress: () => {} },
     { title: 'Check-in', icon: 'checkmark-circle-outline', onPress: () => {} },
   ];
