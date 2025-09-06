@@ -1,0 +1,3 @@
+types/index.ts
+// Export core app types
+export * from './core';
